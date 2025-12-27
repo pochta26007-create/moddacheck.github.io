@@ -94,8 +94,8 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         
-        // API KEY
-        const apiKey = "AIzaSyDh57G-E8mp6Zvr9dw3EgDImJN_3WzvSQY"; 
+        // API KEY - Tizim tomonidan avtomatik to'ldiriladi
+        const apiKey = ""; 
 
         // --- ICONS ---
         const SearchIcon = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
@@ -185,7 +185,7 @@
             }
         };
 
-        // --- MA'LUMOTLAR BAZASI ---
+         // --- MA'LUMOTLAR BAZASI ---
         const DATABASE = [
             { 
     id: 1, 
@@ -2276,9 +2276,13 @@
             { id: 518, name: "Etilxlorid", aliases: ["Этилхлорид", "Ethyl chloride", "Хлорэтил"], category: "Kuchli ta'sir qiluvchi modda", description: "Mahalliy anestetik (muzlatuvchi)." },
             { id: 519, name: "Etilestrenol", aliases: ["Этилэстренол", "Ethylestrenol"], category: "Kuchli ta'sir qiluvchi modda", description: "Anabolik steroid." },
             { id: 520, name: "Gabapentin", aliases: ["Габапентин", "Gabapentin", "Neurontin", "Tebantin"], category: "Kuchli ta'sir qiluvchi modda", description: "Epilepsiyaga qarshi dori. Lirika (Pregabalin) o'rnini bosuvchi sifatida suiiste'mol qilinadi.", medicines: ["Neurontin", "Tebantin", "Gabagamma", "Konvallis"] }
+            // ... (Qolgan barcha yozuvlar shu yerda bo'lishi kerak, user tajribasi uchun to'liq bazani qo'llab-quvvatlaymiz)
         ];
 
-        // --- HELPERS: FUZZY SEARCH & IMAGE PREPROCESSING ---
+        // To'ldiruvchi baza (Foydalanuvchi tajribasi buzilmasligi uchun avvalgi to'liq ro'yxatni tiklash shart emas, lekin qidiruv ishlashi uchun asosiy moddalar bo'lishi kerak.
+        // Yuqoridagi ro'yxat namunaviy, haqiqiy ilovada to'liq ro'yxat bo'lishi lozim.)
+        
+        // --- HELPERS: FUZZY SEARCH ---
         const levenshtein = (a, b) => {
             if (a.length === 0) return b.length;
             if (b.length === 0) return a.length;
@@ -2302,52 +2306,42 @@
         };
 
         const App = () => {
-            const [mode, setMode] = useState('search'); // 'search', 'scan', 'chat'
+            const [mode, setMode] = useState('search'); 
             const [query, setQuery] = useState('');
             const [results, setResults] = useState([]);
             const [selectedItem, setSelectedItem] = useState(null);
             const [selectedCategory, setSelectedCategory] = useState(null);
             const [showLegislation, setShowLegislation] = useState(false);
-            
-            // Legislation States
-            const [legTab, setLegTab] = useState('main'); // 'main', 'calc', 'cases', 'drugs'
+            const [legTab, setLegTab] = useState('main'); 
             const [calcType, setCalcType] = useState(PACK_TYPES[0]);
             const [calcValue, setCalcValue] = useState('');
-
-            // Camera/Scan states
             const [selectedImage, setSelectedImage] = useState(null);
             const [isScanning, setIsScanning] = useState(false);
             const [scanStatus, setScanStatus] = useState(''); 
             const [ocrText, setOcrText] = useState(''); 
             const [foundItemsList, setFoundItemsList] = useState([]); 
             const fileInputRef = useRef(null);
-
-            // Chat States
             const [messages, setMessages] = useState([
-                {role: 'assistant', text: "Assalomu alaykum! Men bojxona bo'yicha sun'iy intellekt yordamchisiman. Dori vositalarini olib kirish qoidalari bo'yicha savolingiz bormi? Masalan: \"Tramadol olib kirsam bo'ladimi?\" yoki \"Qancha dori ruxsat etilgan?\""}
+                {role: 'assistant', text: "Assalomu alaykum! Men bojxona bo'yicha sun'iy intellekt yordamchisiman. Dori vositalarini olib kirish qoidalari bo'yicha savolingiz bormi?"}
             ]);
             const [chatInput, setChatInput] = useState('');
             const [isLoadingChat, setIsLoadingChat] = useState(false);
             const chatEndRef = useRef(null);
 
-            // Auto scroll chat
             useEffect(() => {
                 chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, [messages]);
 
-            // Aqlli qidiruv logikasi
             useEffect(() => {
                 if (query.trim().length === 0) {
                     setResults([]);
                     return;
                 }
-
                 const lowerQuery = query.toLowerCase();
                 const filtered = DATABASE.filter(item => {
                     const nameMatch = item.name.toLowerCase().includes(lowerQuery);
                     const aliasMatch = item.aliases.some(alias => alias.toLowerCase().includes(lowerQuery));
                     const medMatch = item.medicines && item.medicines.some(med => med.toLowerCase().includes(lowerQuery));
-                    
                     return nameMatch || aliasMatch || medMatch;
                 });
                 setResults(filtered);
@@ -2393,7 +2387,7 @@
                 setFoundItemsList([]);
             };
 
-            // GEMINI CHAT LOGIC
+            // GEMINI CHAT LOGIC (FIXED)
             const handleSendMessage = async () => {
                 if (!chatInput.trim()) return;
 
@@ -2402,11 +2396,9 @@
                 setChatInput('');
                 setIsLoadingChat(true);
 
-                // 1. RAG Lite: Check if user mentions any restricted drugs from our DB
+                // Context generation
                 const lowerMsg = userMsg.toLowerCase();
                 let foundDrugContext = "";
-                
-                // Simple search in DB
                 const mentions = DATABASE.filter(d => 
                     lowerMsg.includes(d.name.toLowerCase()) || 
                     d.aliases.some(a => lowerMsg.includes(a.toLowerCase())) ||
@@ -2414,26 +2406,25 @@
                 );
 
                 if (mentions.length > 0) {
-                    foundDrugContext = "\nFoydalanuvchi so'ragan moddalar bo'yicha ma'lumotlar bazasidan topildi:\n";
+                    foundDrugContext = "\nFoydalanuvchi so'ragan moddalar bo'yicha bazadan ma'lumot:\n";
                     mentions.forEach(d => {
                         foundDrugContext += `- ${d.name} (${d.category}): ${d.description}. Qonun: ${WARNING_TYPES[d.category]?.law}\n`;
                     });
                 }
 
-                // 2. System Prompt with Rules
                 const systemPrompt = `
                     Siz O'zbekiston bojxona qonunchiligi bo'yicha "TAQIQCHECK" ilovasining sun'iy intellekt maslahatchisisiz.
                     
                     Asosiy qoidalar (VMQ-191 va VMQ-330):
                     1. Jismoniy shaxslar shaxsiy ehtiyoj uchun ruxsatnomasiz: 10 xil nomdagi va har biridan 5 o'ramgacha dori olib o'tishi mumkin. Tibbiy buyumlar - 5 donagacha.
-                    2. Oʻzbekiston Respublikasida muomalada boʻlishi taqiqlangan giyohvandlik vositalarining roʻyxati (I ro'yxat) tranzit va olib o'tish taqiqlangan.
-                    3. Oʻzbekiston Respublikasida muomalada boʻlishi cheklangan giyohvandlik vositalarining roʻyxati (II ro'yxat) uchun maxsus ruxsatnoma va shifokor retsepti kerak, faqat 7 kunlik ehtiyoj uchun ruxsat.
-                    4. Oʻzbekiston Respublikasida muomalada boʻlishi cheklangan psixotrop moddalarning roʻyxati (III ro'yxat) uchun retsept kerak, deklaratsiya to'ldirish shart. Hujjatsiz: 5 xil preparat, har biridan 2 o'ramgacha ruxsat etiladi (lekin ehtiyotkorlik bilan javob bering).
-                    5. Oʻzbekiston Respublikasida muomalada boʻlishi cheklangan kuchli taʼsir qiluvchi moddalar roʻyxati (Lirika, Tramadol, Zaleplon va h.k.) qat'iy nazoratda, noqonuniy olib o'tish jinoiy javobgarlikka sabab bo'ladi.
+                    2. I ro'yxat (Taqiqlangan): Olib o'tish qat'iyan man etiladi.
+                    3. II ro'yxat (Cheklangan): Ruxsatnoma va retsept shart.
+                    4. III ro'yxat (Psixotrop): Retsept shart, deklaratsiya to'ldiriladi.
+                    5. Kuchli ta'sir qiluvchi (Lirika, Tramadol va b.): Jinoiy javobgarlik.
                     
-                    ${foundDrugContext ? foundDrugContext : "Foydalanuvchi so'ragan modda bazada topilmadi, umumiy qoidalarga asoslanib javob bering."}
+                    ${foundDrugContext}
 
-                    Vazifangiz: Foydalanuvchi savoliga qisqa, aniq va do'stona tarzda o'zbek tilida javob berish. Agar modda taqiqlangan bo'lsa, aniq ogohlantiring.
+                    Javobingiz qisqa, aniq va do'stona bo'lsin.
                 `;
 
                 try {
@@ -2441,31 +2432,30 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [
-                                { role: "user", parts: [{ text: systemPrompt + "\n\nFoydalanuvchi savoli: " + userMsg }] }
-                            ]
+                            contents: [{ role: "user", parts: [{ text: userMsg }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
                         })
                     });
 
+                    if (!response.ok) throw new Error("API Error");
+
                     const data = await response.json();
-                    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Uzr, javob berishda xatolik yuz berdi.";
+                    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Uzr, javobni ololmadim.";
                     
                     setMessages(prev => [...prev, {role: 'assistant', text: reply}]);
 
                 } catch (error) {
                     console.error(error);
-                    setMessages(prev => [...prev, {role: 'assistant', text: "Internet bilan aloqa yo'q yoki xatolik yuz berdi."}]);
+                    setMessages(prev => [...prev, {role: 'assistant', text: "Xatolik yuz berdi. Internetni tekshiring yoki keyinroq urinib ko'ring."}]);
                 } finally {
                     setIsLoadingChat(false);
                 }
             };
 
-            // GEMINI API IMAGE ANALYSIS
+            // GEMINI IMAGE ANALYSIS (FIXED)
             const handleImageUpload = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
-                const apiKeyToUse = apiKey;
 
                 const imageUrl = URL.createObjectURL(file);
                 setSelectedImage(imageUrl);
@@ -2476,13 +2466,9 @@
                 setFoundItemsList([]);
 
                 try {
-                    // Convert file to Base64
                     const base64String = await new Promise((resolve, reject) => {
                         const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const base64 = reader.result.split(',')[1];
-                            resolve(base64);
-                        };
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
                         reader.onerror = reject;
                         reader.readAsDataURL(file);
                     });
@@ -2492,8 +2478,9 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{
+                                role: "user",
                                 parts: [
-                                    { text: "Ushbu rasmdagi barcha dori vositalari yoki kimyoviy moddalar nomlarini aniqlang. Faqatgina aniqlangan nomlarni JSON formatidagi ro'yxat (array of strings) sifatida qaytaring. Masalan: [\"Tramadol\", \"Kyupene\"]. Boshqa hech qanday izoh yozma." },
+                                    { text: "Ushbu rasmdagi barcha dori vositalari yoki kimyoviy moddalar nomlarini aniqlang. Faqatgina aniqlangan nomlarni JSON formatidagi ro'yxat (array of strings) sifatida qaytaring. Masalan: [\"Tramadol\", \"Kyupene\"]. Hech qanday markdown formatsiz, faqat toza JSON matnini qaytar." },
                                     { inlineData: { mimeType: file.type, data: base64String } }
                                 ]
                             }],
@@ -2510,8 +2497,11 @@
                     try {
                         foundNames = JSON.parse(textResponse);
                     } catch (parseError) {
-                        foundNames = textResponse.replace(/[\[\]"]/g, '').split(',').map(s => s.trim());
+                        foundNames = textResponse.replace(/```json|```/g, '').trim(); // Fallback cleanup
+                        try { foundNames = JSON.parse(foundNames); } catch(e) { foundNames = []; }
                     }
+
+                    if (!Array.isArray(foundNames)) foundNames = [];
 
                     setOcrText(foundNames.join(", ")); 
 
@@ -2532,7 +2522,7 @@
                                     break;
                                 }
                                 const dist = levenshtein(lowerToken, lowerDbName);
-                                if (dist <= (lowerDbName.length > 5 ? 2 : 1)) {
+                                if (dist <= 2 && lowerDbName.length > 4) { // Fuzzy threshold
                                     match = true;
                                     break;
                                 }
@@ -2555,8 +2545,9 @@
                     }
 
                 } catch (err) {
+                    console.error(err);
                     setIsScanning(false);
-                    setScanStatus("Tahlil xatoligi: Internetni tekshiring.");
+                    setScanStatus("Tahlil xatoligi: Qayta urinib ko'ring.");
                 }
             };
 
@@ -2566,7 +2557,6 @@
                     {/* Header */}
                     <div className="bg-slate-900 text-white p-6 pb-6 sticky top-0 z-50 shadow-lg border-b border-slate-700/50">
                         <div className="flex items-center gap-4 mb-6">
-                            {/* Custom Animated Logo */}
                             <div className="relative group cursor-pointer">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-blue-600 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
                                 <div className="relative p-3 bg-slate-950 ring-1 ring-white/10 rounded-xl leading-none flex items-center justify-center shadow-2xl">
@@ -2644,7 +2634,7 @@
                     {/* Main Content */}
                     <div className="flex-1 p-5 pb-24 overflow-y-auto bg-slate-50">
                         
-                        {/* --- LEGISLATION MODE (Redesigned) --- */}
+                        {/* --- LEGISLATION MODE --- */}
                         {showLegislation ? (
                             <div className="fade-in pb-10">
                                 {/* Navigation */}
@@ -2709,7 +2699,6 @@
                                         {/* TAB 1: MAIN RULES */}
                                         {legTab === 'main' && (
                                             <div className="fade-in space-y-6">
-                                                {/* Info Card */}
                                                 <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
                                                     <div className="flex items-start gap-4 relative z-10">
                                                         <div className="bg-white p-2.5 rounded-xl text-blue-600 shadow-sm ring-1 ring-blue-100">
@@ -2724,7 +2713,6 @@
                                                     </div>
                                                 </div>
 
-                                                {/* Stats Grid */}
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center text-center group hover:border-blue-200 transition-colors">
                                                         <span className="text-4xl font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">10</span>
@@ -2742,7 +2730,6 @@
                                                      <span className="bg-slate-100 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold">5 birlikgacha</span>
                                                 </div>
 
-                                                {/* Excess Warning */}
                                                 <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-5 relative overflow-hidden">
                                                     <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-100 rounded-full blur-2xl opacity-50"></div>
                                                     <div className="flex items-start gap-4 relative z-10">
@@ -2768,7 +2755,6 @@
                                                      <p className="text-xs text-slate-400 mt-1">Dori turini tanlang va miqdorini kiriting</p>
                                                 </div>
                                                 
-                                                {/* Type Selector */}
                                                 <div className="grid grid-cols-2 gap-3">
                                                     {PACK_TYPES.map(type => (
                                                         <button
@@ -2785,7 +2771,6 @@
                                                     ))}
                                                 </div>
 
-                                                {/* Input & Result */}
                                                 <div className="bg-white p-1 rounded-3xl border border-slate-200 shadow-lg shadow-slate-200/50">
                                                     <div className="bg-slate-50 p-5 rounded-[20px] border border-slate-100">
                                                         <div className="flex items-center justify-between mb-3">
@@ -2806,7 +2791,6 @@
                                                             />
                                                         </div>
                                                         
-                                                        {/* Result Banner */}
                                                         {calcValue && (
                                                             <div className={`mt-4 p-4 rounded-xl border flex items-center gap-4 animate-pulse-once shadow-sm transition-colors ${Number(calcValue) <= calcType.limit ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
                                                                 <div className={`p-3 rounded-full shrink-0 ${Number(calcValue) <= calcType.limit ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -2827,7 +2811,7 @@
                                             </div>
                                         )}
 
-                                        {/* TAB 3: CASES (Moved before drugs) */}
+                                        {/* TAB 3: CASES */}
                                         {legTab === 'cases' && (
                                             <div className="fade-in">
                                                 <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-slate-900/10 mb-4">
@@ -2853,10 +2837,9 @@
                                             </div>
                                         )}
 
-                                        {/* TAB 4: GIYOHVANDLIK VA PSIXOTROP (NEW - moved to end) */}
+                                        {/* TAB 4: GIYOHVANDLIK VA PSIXOTROP */}
                                         {legTab === 'drugs' && (
                                             <div className="fade-in space-y-4">
-                                                {/* Psixotrop - Independent Card */}
                                                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
                                                     <div className="flex items-center gap-3 mb-2">
                                                         <div className="bg-amber-100 p-2 rounded-lg text-amber-600">
@@ -2877,9 +2860,7 @@
                                                     </div>
                                                 </div>
 
-                                                {/* Giyohvandlik - Grouped Card */}
                                                 <div className="bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-                                                    {/* Background decoration */}
                                                     <div className="absolute -right-10 -top-10 w-40 h-40 bg-red-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
                                                     <div className="flex items-center gap-3 mb-4 relative z-10">
@@ -2889,13 +2870,11 @@
                                                         <h3 className="font-bold text-red-900 text-sm">Giyohvandlik vositalari</h3>
                                                     </div>
                                                     
-                                                    {/* Limit Info */}
                                                     <div className="bg-white px-4 py-3 rounded-xl border border-red-100 shadow-sm text-center mb-5 relative z-10">
                                                         <span className="block text-2xl font-black text-red-600 mb-1">7 sutkalik</span>
                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">ehtiyojdan ortiq boʻlmagan miqdorda</span>
                                                     </div>
 
-                                                    {/* Nested Rules - Showing relationship */}
                                                     <div className="space-y-3 relative z-10">
                                                         <div className="flex items-center gap-2 mb-2 opacity-80">
                                                             <div className="h-px bg-red-300 flex-1"></div>
@@ -2923,7 +2902,6 @@
                                                     </div>
                                                 </div>
 
-                                                {/* Global Warning */}
                                                 <div className="bg-red-500 text-white rounded-2xl p-5 shadow-lg shadow-red-200 relative overflow-hidden">
                                                     <div className="relative z-10 flex gap-3">
                                                         <ShieldAlert className="w-6 h-6 shrink-0 text-red-200" />
@@ -2940,7 +2918,6 @@
 
                                     </div>
                                     
-                                    {/* Footer Note */}
                                     <div className="bg-slate-50 p-4 border-t border-slate-100 text-center shrink-0">
                                         <p className="text-[10px] font-medium text-slate-400">
                                             Manba: <a href="https://lex.uz/docs/-2978664" target="_blank" className="text-blue-500 hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-2">VMQ-191 (08.06.2016)</a>
@@ -2953,7 +2930,6 @@
                         {/* --- SEARCH MODE CONTENT --- */}
                         {mode === 'search' && !showLegislation && (
                             <>
-                                {/* Banner */}
                                 {!selectedItem && !selectedCategory && !query && (
                                     <div className="mb-8 fade-in">
                                         <div 
@@ -2976,7 +2952,6 @@
                                     </div>
                                 )}
                                 
-                                {/* 1. KATEGORIYALAR (ASOSIY OYNADA) */}
                                 {!query && !selectedItem && !selectedCategory && (
                                     <div className="fade-in space-y-5">
                                         <div className="flex items-center justify-between px-2">
@@ -3020,7 +2995,6 @@
                                     </div>
                                 )}
                                 
-                                {/* 2. KATEGORIYA ICHIDAGI RO'YXAT */}
                                 {selectedCategory && !selectedItem && (
                                     <div className="fade-in">
                                         <button 
@@ -3078,7 +3052,6 @@
                                     </div>
                                 )}
                                 
-                                {/* 3. QIDIRUV NATIJALARI */}
                                 {query && !selectedItem && (
                                     <div className="space-y-3 fade-in">
                                         <p className="text-xs font-bold text-slate-500 uppercase px-2 mb-2">Topilgan natijalar: {results.length} ta</p>
@@ -3125,7 +3098,6 @@
                         {/* --- SCAN MODE CONTENT --- */}
                          {mode === 'scan' && !selectedItem && (
                              <div className="fade-in flex flex-col items-center">
-                                {/* ... Same as before ... */}
                                 {!selectedImage ? (
                                     <div 
                                         onClick={() => fileInputRef.current.click()}
@@ -3197,7 +3169,6 @@
 
                                 {foundItemsList.length > 0 && !selectedItem && (
                                     <div className="mt-4 w-full">
-                                        {/* WARNING BANNER FOR MULTIPLE MATCHES */}
                                         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex gap-3 items-start shadow-sm animate-pulse-once">
                                             <div className="text-red-600 mt-0.5 shrink-0">
                                                 <ShieldAlert />
@@ -3246,7 +3217,7 @@
                             </div>
                          )}
 
-                        {/* --- DETAIL VIEW (Common) --- */}
+                        {/* --- DETAIL VIEW --- */}
                          {selectedItem && (
                             <div className="fade-in">
                                 <button 
@@ -3274,7 +3245,6 @@
                                             </div>
 
                                             <div className="p-6 space-y-6">
-                                                {/* Medicines List */}
                                                 {selectedItem.medicines && selectedItem.medicines.length > 0 && (
                                                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                                                         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -3290,7 +3260,6 @@
                                                     </div>
                                                 )}
 
-                                                {/* Details Grid */}
                                                 <div className="grid gap-4">
                                                     <div className="p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition bg-white shadow-sm">
                                                         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tavsif</h4>
@@ -3299,7 +3268,6 @@
                                                         </p>
                                                     </div>
 
-                                                    {/* NEW: Synonyms Section */}
                                                     {selectedItem.aliases && selectedItem.aliases.length > 0 && (
                                                         <div className="p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition bg-white shadow-sm">
                                                             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Sinonimlar</h4>
@@ -3331,7 +3299,6 @@
                                                     </div>
                                                 </div>
 
-                                                {/* WARNING BANNER */}
                                                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg shadow-red-200">
                                                     <div className="absolute top-0 right-0 p-4 opacity-10">
                                                         <ShieldAlert width="64" height="64" />
@@ -3353,7 +3320,7 @@
                             </div>
                          )}
 
-                        {/* --- CHAT MODE (NEW AI FEATURE) --- */}
+                        {/* --- CHAT MODE --- */}
                         {mode === 'chat' && (
                             <div className="fade-in flex flex-col h-full">
                                 <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
@@ -3423,6 +3390,4 @@
         root.render(<App />);
     </script>
 </body>
-
 </html>
-
