@@ -237,6 +237,14 @@
                 if (window.Telegram && window.Telegram.WebApp) {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
+                    
+                    // Telegram Header panelini bg-slate-900 ga bo'yab berish orqali tepadan ko'rinishni chiroyli qilamiz
+                    try {
+                        window.Telegram.WebApp.setHeaderColor('#0f172a');
+                        window.Telegram.WebApp.setBackgroundColor('#f8fafc');
+                    } catch (e) {
+                        console.log("Telegram header color set failed", e);
+                    }
                 }
             }, []);
 
